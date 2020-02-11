@@ -1,0 +1,56 @@
+--- Requirements ---
+
+Docker.
+Node.js.
+	Yarn.
+VSCode.
+	TypeScript.
+
+
+
+--- Service: Source `src/` File Structure ---
+
+@@ __mock__
+Dados fictícios para os testes.
+
+
+@@ api
+API routes.
+
+
+@@ config
+Configurações do servidor e do banco de dados.
+
+
+@@ repository
+Repositório. Banco de dados.
+
+
+@@ server
+Servidor do serviço.
+
+
+@@ index.ts
+Endpoint.
+
+Tenta conectar no banco de dados e, em seguida iniciar o servidor do serviço.
+
+
+
+--- Warnings ---
+
++ `mysql-service`: Error: connect ECONNREFUSED [IP]:3306
+A criação do Container do MySQL é rápida, mas, a inicialização do MySQL demora um pouco.
+O microservice que tentar se conectar imediamatente no MySQL receberá:  `Error: connect ECONNREFUSED [IP]:3306`.
+Mas, uma vez que o banco de dados e o usuários estiverem criados, o serviço se conectará no MySQL normalmente.
+Tente executar os Containers em modo `detach`: `-d`, assim eles não precisarão serem criados e executados novamente.
+
+
+
+--- References: Links ---
+
++ Deploy MongoDB replicas with Docker.
+@Link: https://towardsdatascience.com/how-to-deploy-a-mongodb-replica-set-using-docker-6d0b9ac00e49
+
++ More Security `server/server.js`.
+@Link: https://nodesource.com/blog/nine-security-tips-to-keep-express-from-getting-pwned/?utm_source=nodeweekly&utm_medium=email

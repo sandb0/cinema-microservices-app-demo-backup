@@ -1,0 +1,10 @@
+# Remove ESLint file.
+.eslintrc.js
+
+# Remove Node modules.
+node_modules
+yarn.lock
+
+# Remove Docker files.
+Dockerfile
+.dockerignore

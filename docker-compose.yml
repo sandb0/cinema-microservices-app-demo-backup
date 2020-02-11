@@ -1,0 +1,52 @@
+version: "3.7"
+
+services:
+  #
+  # Movies Service
+  #
+  movies-service:
+    build: ./Services/Movies-Service
+    container_name: movies-service-container
+    environment:
+      MYSQL_HOST: 'mysql-service'
+      MYSQL_USER: 'root'
+      MYSQL_PASS: 'rootpasswd'
+      MYSQL_DATABASE: 'movies'
+      
+      MONGODB_SERVERS: 'root:rootpasswd@mongodb-service:27017'
+    ports:
+      - 3000:3000
+    volumes:
+      - ./Services/Movies-Service:/home/application
+      - /home/application/node_modules
+    depends_on: 
+      - mysql-service
+      - mongodb-service
+    links:
+      - mysql-service
+      - mongodb-service
+  #
+  # Database: MySQL Service
+  #
+  mysql-service:
+    image: mysql
+    restart: always
+    container_name: mysql-service-container
+    command: --default-authentication-plugin=mysql_native_password
+    environment:
+      MYSQL_ROOT_PASSWORD: 'rootpasswd'
+      MYSQL_DATABASE: 'movies'
+    ports:
+      - 3306:3306
+  #
+  # Database: MongoDB Service
+  #
+  mongodb-service:
+    image: mongo
+    restart: always
+    container_name: mongodb-service-container
+    environment: 
+      MONGO_INITDB_ROOT_USERNAME: 'root'
+      MONGO_INITDB_ROOT_PASSWORD: 'rootpasswd'
+    ports:
+      - 27017:27017
