@@ -5,13 +5,19 @@
 # Copyright (c) 2020 Sand Box 0
 #
 
+MANAGER_NODE="manager-node1"
+
+# Allow shell for Docker Swarm commands.
+eval $(docker-machine env $MANAGER_NODE)
+
 MICROSERVICES=(
   "./Services/Movies-Service"
 )
 
 print_title() {
+  echo ""
   echo "--------------------------------------------------"
-  echo $1
+  echo "(Services)" $1
   echo "--------------------------------------------------"
 }
 
@@ -25,9 +31,8 @@ main() {
       --use-swarm)
         USE_SWARM="--use-swarm"
         ;;
-      --use-local=*)
-        USE_LOCAL_IMAGE_REPOSITORY="${VALUE#*=}"
-        IMAGE_REPOSITORY_PORT="${VALUE#*=}"
+      --use-local)
+        USE_LOCAL_IMAGE_REPOSITORY="--use-local"
         ;;
       --use-hub=*)
         USE_HUB_IMAGE_REPOSITORY="${VALUE#*=}"
@@ -48,7 +53,7 @@ main() {
     # Service Image location: local, local repository or Docker Hub.
     IMAGE=$IMAGE_NAME
     if [ ! -z "$USE_LOCAL_IMAGE_REPOSITORY" ]; then
-      IMAGE=localhost:$IMAGE_REPOSITORY_PORT/$IMAGE_NAME
+      IMAGE=localhost:5000/$IMAGE_NAME
     elif [ ! -z "$USE_HUB_IMAGE_REPOSITORY" ]; then
       IMAGE=$DOCKER_HUB_USERNAME/$IMAGE_NAME
     fi

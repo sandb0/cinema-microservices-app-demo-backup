@@ -5,6 +5,11 @@
 # Copyright (c) 2020 Sand Box 0
 #
 
+MANAGER_NODE="manager-node1"
+
+# Allow shell for Docker Swarm commands.
+eval $(docker-machine env $MANAGER_NODE)
+
 MICROSERVICES=(
   "./Services/Movies-Service"
 )
@@ -12,9 +17,22 @@ MICROSERVICES=(
 IMAGE_REPOSITORY_NAME="registry"
 
 print_title() {
+  echo ""
   echo "--------------------------------------------------"
-  echo $1
+  echo "(Images)" $1
   echo "--------------------------------------------------"
+}
+
+use_insecure_registries() {
+  # Enable insecure Docker Registry with HTTP instead of HTTPS.
+
+  if [ ! -f "/etc/docker/daemon.json.bkp" ]; then
+    cp /etc/docker/daemon.json /etc/docker/daemon.json.bkp
+  fi
+  echo "{ \"insecure-registries\": [\"$(docker-machine ip $1):5000\"] }" > /etc/docker/daemon.json
+
+  systemctl daemon-reload
+  service docker restart
 }
 
 create_local_image_repository() {
@@ -26,7 +44,8 @@ create_local_image_repository() {
 
       if [ -z $REGISTRY_SERVICE ]; then
         print_title "Creating local service for Image repository."
-        sudo docker service create --name $IMAGE_REPOSITORY_NAME --publish IMAGE_REPOSITORY_PORT:IMAGE_REPOSITORY_PORT registry
+        docker service create --name $IMAGE_REPOSITORY_NAME --publish 5000:5000 registry:2
+        use_insecure_registries $MANAGER_NODE
       fi
     # Or, create a Container.
     else
@@ -34,7 +53,7 @@ create_local_image_repository() {
 
       if [ -z $REGISTRY_CONTAINER ]; then
         print_title "Creating local container for Image repository."
-        sudo docker run -p $IMAGE_REPOSITORY_PORT:$IMAGE_REPOSITORY_PORT --name $IMAGE_REPOSITORY_NAME -d registry
+        docker run -p 5000:5000 --name $IMAGE_REPOSITORY_NAME -d registry
       fi
     fi
   fi
@@ -47,6 +66,8 @@ push_image_to_repository() {
   if [ ! -z "$USE_HUB_IMAGE_REPOSITORY" ]; then
     local IMAGE_ID=$(docker images -q $IMAGE_NAME)
 
+    print_title "Pushing '$IMAGE_NAME' Image to Docker Hub"
+
     sudo docker tag $DOCKER_HUB_USERNAME/$IMAGE_ID $IMAGE_NAME:latest
     sudo docker push $DOCKER_HUB_USERNAME/$IMAGE_NAME:latest
 
@@ -55,8 +76,10 @@ push_image_to_repository() {
   elif [ ! -z "$USE_LOCAL_IMAGE_REPOSITORY" ]; then
     local IMAGE_ID=$(docker images -q $IMAGE_NAME)
 
-    sudo docker tag $IMAGE_NAME:latest localhost:$IMAGE_REPOSITORY_PORT/$IMAGE_NAME
-    sudo docker push localhost:$IMAGE_REPOSITORY_PORT/$IMAGE_NAME
+    print_title "Pushing '$IMAGE_NAME' Image to local Image repository"
+
+    sudo docker tag $IMAGE_NAME:latest $(docker-machine ip $MANAGER_NODE):5000/$IMAGE_NAME
+    sudo docker push $(docker-machine ip $MANAGER_NODE):5000/$IMAGE_NAME
 
     sudo docker rmi $IMAGE_NAME
   fi
@@ -72,9 +95,8 @@ main() {
       --use-swarm)
         USE_SWARM="--use-swarm"
         ;;
-      --use-local=*)
-        USE_LOCAL_IMAGE_REPOSITORY="${VALUE#*=}"
-        IMAGE_REPOSITORY_PORT="${VALUE#*=}"
+      --use-local)
+        USE_LOCAL_IMAGE_REPOSITORY="--use-local"
         ;;
       --use-hub=*)
         USE_HUB_IMAGE_REPOSITORY="${VALUE#*=}"

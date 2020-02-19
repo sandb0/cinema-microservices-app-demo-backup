@@ -78,9 +78,7 @@ function main {
   create_network
   create_service_mysql
   create_service_mongodb
-  create_microservice_container  
+  create_microservice_container
 }
 
 main
-
-echo $PROJECTDIR/$SERVICEDIR/src:$CONTAINER_APP_DIR/src

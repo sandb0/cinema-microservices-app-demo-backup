@@ -19,15 +19,17 @@ SERVICEDIR=$PWD
 CONTAINER_APP_DIR="/home/application"
 
 print_title() {
+  echo ""
   echo "--------------------------------------------------"
-  echo $1
+  echo "(Service)" $1
   echo "--------------------------------------------------"
 }
 
 # Create Service in Swarm mode on.
 if [ ! -z $USE_SWARM ]; then
-  print_title "Creating '$IMAGE_NAME' microservice with Docker Swarm"
+  print_title "Creating '$IMAGE_NAME' microservice with Docker Swarm using Image repository"
 
+  # Running inside of $MANAGER_NODE.
   docker service create \
     --replicas $REPLICAS \
     --name $IMAGE_NAME \

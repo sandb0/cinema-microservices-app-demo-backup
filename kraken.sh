@@ -10,8 +10,9 @@
 #
 
 print_title() {
+  echo ""
   echo "--------------------------------------------------"
-  echo $1
+  echo ">>> "$1
   echo "--------------------------------------------------"
 }
 
@@ -20,8 +21,12 @@ print_usage() {
   
     Options:
       -s, --swarm                               Start up with Docker Swarm.
+      --swarm-managers=<number>                 Amount of Swarm node managers.
+      --swarm-workers=<number>                  Amount of Swarm node workers.
+      --swarm-disk-size=<number>                Amount of virtual machine disk size.
+      --swarm-memory=<number>                   Amount of virtual machine memory.
       -h <username>, --use-hub=<username>       Use Docker Hub for remote Image repository.
-      -l <port>, --use-local=<port>             Use local Container for remote Image repository.
+      -l, --use-local                           Use local Container for remote Image repository.
   "
   exit 1
 }
@@ -52,6 +57,16 @@ print_status_message() {
   fi
 }
 
+create_docker_swarm() {
+  cd __docker-setup__
+
+  print_title "Creating Docker Swarm"
+
+  sudo bash create-docker-swarm.sh $SWARM_MANAGERS $SWARM_WORKERS $SWARM_DISK_SIZE $SWARM_MEMORY
+
+  cd ..
+}
+
 create_docker_images() {
   cd __docker-setup__
   
@@ -79,6 +94,18 @@ main() {
       -s|--swarm)
         USE_SWARM="--use-swarm"
         ;;
+      --swarm-managers=*)
+        SWARM_MANAGERS="--swarm-managers=${1#*=}"
+        ;;
+      --swarm-workers=*)
+        SWARM_WORKERS="--swarm-workers=${1#*=}"
+        ;;
+      --swarm-disk-size=*)
+        SWARM_DISK_SIZE="--swarm-disk-size=${1#*=}"
+        ;;
+      --swarm-memory=*)
+        SWARM_MEMORY="--swarm-memory=${1#*=}"
+        ;;
       -h)
         shift
         # `-h`, `--use-hub`, `-l`, `--use-local` cannot be combined. Avoid it.
@@ -94,19 +121,11 @@ main() {
           USE_HUB="--use-hub=${1#*=}"
         fi
         ;;
-      -l)
-        shift
+      -l|--use-local)
         # `-h`, `--use-hub`, `-l`, `--use-local` cannot be combined. Avoid it.
         if [ -z $IS_IMAGE_REPOSITORY_SETTED ]; then
           IS_IMAGE_REPOSITORY_SETTED="true"
-          USE_LOCAL="--use-local=${1#*=}"
-        fi
-        ;;
-      --use-local=*)
-        # `-h`, `--use-hub`, `-l`, `--use-local` cannot be combined. Avoid it.
-        if [ -z $IS_IMAGE_REPOSITORY_SETTED ]; then
-          IS_IMAGE_REPOSITORY_SETTED="true"
-          USE_LOCAL="--use-local=${1#*=}"
+          USE_LOCAL="--use-local"
         fi
         ;;
       --help)
@@ -116,11 +135,17 @@ main() {
         print_usage_error $1
         ;;
     esac
+    
     shift
   done
 
   print_status_message
 
+  # In Swarm mode, create Docker Swarm.
+  if [ ! -z $USE_SWARM ]; then
+    create_docker_swarm
+  fi
+  
   create_docker_images
   create_docker_services
 }
