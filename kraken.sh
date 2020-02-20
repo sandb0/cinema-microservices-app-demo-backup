@@ -79,6 +79,8 @@ create_mongodb_replication() {
 
   sudo bash create-mongodb-containers.sh  --manager_node_template_name=$MANAGER_NODE_TEMPLATE_NAME --worker_node_template_name=$WORKER_NODE_TEMPLATE_NAME
 
+  print_title "Creating MongoDB containers and Replica Set: Done!"
+
   cd ..
 }
 
@@ -88,6 +90,8 @@ create_docker_swarm() {
   print_title "Creating Docker Swarm"
 
   sudo bash create-docker-swarm.sh $SWARM_RESET_MACHINES $SWARM_MANAGERS $SWARM_WORKERS $SWARM_DISK_SIZE $SWARM_MEMORY --manager_node_template_name=$MANAGER_NODE_TEMPLATE_NAME --worker_node_template_name=$WORKER_NODE_TEMPLATE_NAME
+
+  print_title "Creating Docker Swarm: Done!"
 
   cd ..
 }
@@ -99,6 +103,8 @@ create_docker_images() {
 
   sudo bash create-docker-images.sh $USE_SWARM $USE_LOCAL $USE_HUB --manager_node_template_name=$MANAGER_NODE_TEMPLATE_NAME
 
+  print_title "Creating Docker Images: Done!"
+
   cd ..
 }
 
@@ -108,6 +114,8 @@ create_docker_services() {
   print_title "Creating Microservices"
 
   sudo bash create-docker-services.sh $USE_SWARM $USE_LOCAL $USE_HUB --manager_node_template_name=$MANAGER_NODE_TEMPLATE_NAME
+
+  print_title "Creating Microservices: Done!"
 
   cd ..
 }
@@ -180,8 +188,8 @@ main() {
   
   create_mongodb_replication
   
-  #create_docker_images
-  #create_docker_services
+  create_docker_images
+  create_docker_services
 }
 
 main "$@"

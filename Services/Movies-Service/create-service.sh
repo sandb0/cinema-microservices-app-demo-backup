@@ -27,9 +27,16 @@ print_title() {
 
 # Create Service in Swarm mode on.
 if [ ! -z $USE_SWARM ]; then
+  SERVICE=$(docker service ls --filter name="$IMAGE_NAME" -q)
+
+  # Remove service if exists.
+  if [ ! -z $SERVICE ]; then 
+    docker service rm $SERVICE
+    sleep 2
+  fi
+
   print_title "Creating '$IMAGE_NAME' microservice with Docker Swarm using Image repository"
 
-  # Running inside of $MANAGER_NODE.
   docker service create \
     --replicas $REPLICAS \
     --name $IMAGE_NAME \
@@ -38,6 +45,14 @@ if [ ! -z $USE_SWARM ]; then
     $IMAGE
 # Create Container in Swarm mode off.
 else
+  CONTAINER=$(docker ps --filter name="$IMAGE_NAME" -q)
+
+  # Remove container if exists.
+  if [ ! -z $CONTAINER ]; then
+    docker rm $CONTAINER
+    sleep 2
+  fi
+
   print_title "Creating '$IMAGE_NAME' microservice Container"
 
   docker run \

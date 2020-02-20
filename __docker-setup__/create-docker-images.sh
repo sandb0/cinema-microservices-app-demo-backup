@@ -26,9 +26,11 @@ allow_docker_machine_shell() {
 use_insecure_registries() {
   # Enable insecure Docker Registry with HTTP instead of HTTPS.
 
+  # If file not exists, make the copy.
   if [ ! -f "/etc/docker/daemon.json.bkp" ]; then
     cp /etc/docker/daemon.json /etc/docker/daemon.json.bkp
   fi
+
   echo "{ \"insecure-registries\": [\"$(docker-machine ip $1):5000\"] }" > /etc/docker/daemon.json
 
   systemctl daemon-reload
@@ -38,19 +40,20 @@ use_insecure_registries() {
 create_local_image_repository() {
   # Create local (Container) Image repository.
   if [ ! -z "$USE_LOCAL_IMAGE_REPOSITORY" ]; then
+    allow_docker_machine_shell $MANAGER_NODE
+
     # In Swarm mode, create a Service.
     if [ ! -z $USE_SWARM ]; then
-      local REGISTRY_SERVICE=$(sudo docker service ls --filter="name=$IMAGE_REPOSITORY_NAME" -q)
+      local REGISTRY_SERVICE=$(docker service ls --filter name="$IMAGE_REPOSITORY_NAME" -q)
 
       if [ -z $REGISTRY_SERVICE ]; then
         print_title "Creating local service for Image repository."
         docker service create --name $IMAGE_REPOSITORY_NAME --publish 5000:5000 registry:2
-        allow_docker_machine_shell $MANAGER_NODE
         use_insecure_registries $MANAGER_NODE
       fi
     # Or, create a Container.
     else
-      local REGISTRY_CONTAINER=$(sudo docker ps --filter="name=$IMAGE_REPOSITORY_NAME" -q)
+      local REGISTRY_CONTAINER=$(docker ps --filter name="$IMAGE_REPOSITORY_NAME" -q)
 
       if [ -z $REGISTRY_CONTAINER ]; then
         print_title "Creating local container for Image repository."
@@ -110,6 +113,7 @@ main() {
         ;;
     esac
     shift
+
   done
 
   # Instead of uploading Image to the Docker Hub,

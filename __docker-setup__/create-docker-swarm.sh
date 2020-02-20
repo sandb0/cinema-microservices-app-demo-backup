@@ -6,7 +6,7 @@
 #
 
 MANAGERS=1
-WORKERS=2
+WORKERS=1
 DISK_SIZE="5000"
 MEMORY="1024"
 
@@ -60,17 +60,27 @@ leave_swarm() {
 
 create_manager_nodes() {
   for MANAGER in $(seq 1 $MANAGERS); do
-    print_title "Creating VM '$MANAGER_NODE-$MANAGER'"
+    local MACHINE=$(docker-machine ls --filter name="$MANAGER_NODE-$MANAGER" -q)
+
+    # If machine not exists.
+    if [ -z $MACHINE ]; then
+      print_title "Creating VM '$MANAGER_NODE-$MANAGER'"
     
-    docker-machine create --driver $DOCKER_MACHINE_DRIVER $ADDITIONAL_PARAMS $MANAGER_NODE-$MANAGER
+      docker-machine create --driver $DOCKER_MACHINE_DRIVER $ADDITIONAL_PARAMS $MANAGER_NODE-$MANAGER
+    fi
   done
 }
 
 create_worker_nodes() {
   for WORKER in $(seq 1 $WORKERS); do
-    print_title "Creating VM '$WORKER_NODE-$WORKER'"
+    local MACHINE=$(docker-machine ls --filter name="$WORKER_NODE-$WORKER" -q)
 
-    docker-machine create --driver $DOCKER_MACHINE_DRIVER $ADDITIONAL_PARAMS $WORKER_NODE-$WORKER
+    # If machine not exists.
+    if [ -z $MACHINE ]; then
+      print_title "Creating VM '$WORKER_NODE-$WORKER'"
+
+      docker-machine create --driver $DOCKER_MACHINE_DRIVER $ADDITIONAL_PARAMS $WORKER_NODE-$WORKER
+    fi
   done
 }
 

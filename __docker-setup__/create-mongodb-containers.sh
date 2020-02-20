@@ -67,12 +67,18 @@ create_container() {
   local MACHINE=$1
   local HOSTS=$(get_hosts_string_for_replica_set)
   
+  allow_docker_machine_shell $MACHINE
+
+  # If MongoDB Container exists, exit of function.
+  local CONTAINER=$(docker ps --filter name="$CONTAINER_NAME" -q)
+  if [ ! -z $CONTAINER ]; then
+    return 1
+  fi
+
   print_title "Creating Container '$CONTAINER_NAME'"
 
   # Create and configure Volume for MongoDB Container.
   create_volume_for_this_container $MACHINE
-
-  allow_docker_machine_shell $MACHINE
 
   docker run \
     --restart=$CPARAM_RESTART \
@@ -139,6 +145,12 @@ create_replica_set() {
 create_volume_for_this_container() {
   local MACHINE=$1
 
+  # If MongoDB Volume exists, exit of function.
+  local VOLUME=$(docker volume ls --filter name="$MONGODB_VOLUME_NAME" -q)
+  if [ ! -z $VOLUME ]; then
+    return 1
+  fi
+
   print_title "Creating Docker Volume for '$MACHINE'"
 
   allow_docker_machine_shell $MACHINE
@@ -175,32 +187,43 @@ create_volume_for_this_container() {
 }
 
 create_keyfile() {
-  print_title "Creating keyfile"
+  local KEYFILE=$MONGODB_FILES_DIR/$MONGODB_KEYFILE_NAME
 
   allow_docker_machine_shell $MASTER_NODE
 
-  local KEYFILE=$MONGODB_FILES_DIR/$MONGODB_KEYFILE_NAME
+  # If file not exists, create keyfile.
+  if [ ! -f $KEYFILE ]; then
+    print_title "Creating keyfile"
 
-  openssl rand -base64 741 > $KEYFILE
-  chmod 600 $KEYFILE
-  sleep 1
+    openssl rand -base64 741 > $KEYFILE
+    chmod 600 $KEYFILE
+    sleep 1  
+  fi
 }
 
 create_containers_replica_set_mongodb() {
-  print_title "Creating Containers for MongoDB"
+  local ALREADY_EXISTS=0
 
   # Create Master of MongoDB cluster.
   create_container $MASTER_NODE
+  ALREADY_EXISTS=$?
 
-  # Create Replica Set.
-  create_replica_set
+  if [ $ALREADY_EXISTS == 0 ]; then
+    # Create Replica Set.
+    create_replica_set
+  fi
+
+  print_title "Creating Containers for MongoDB"
 
   for SLAVE in $(seq 1 $SLAVES); do
     # Create Slave of MongoDB cluster.
     create_container "$WORKER_NODE-$SLAVE"
+    ALREADY_EXISTS=$?
 
-    # Add slave node at Replica Set.
-    add_slave_on_replica_set "$WORKER_NODE-$SLAVE"
+    if [ $ALREADY_EXISTS == 0 ]; then
+      # Add slave node at Replica Set.
+      add_slave_on_replica_set "$WORKER_NODE-$SLAVE"
+    fi
   done
 }
 
@@ -224,8 +247,6 @@ main() {
 
   create_keyfile
   create_containers_replica_set_mongodb
-
-  print_title_line "MongoDB Replication Set in Docker Swarm are done!"
 }
 
 main "$@"
