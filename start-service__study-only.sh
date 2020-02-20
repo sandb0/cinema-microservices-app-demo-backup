@@ -3,7 +3,7 @@
 # -----
 # !!! It is not to be used. For study purposes only !!!
 #
-## Manually create the Container for this microservice.
+## Manually create the standalone Container for this microservice.
 # -----
 
 NETWORK="microservices"

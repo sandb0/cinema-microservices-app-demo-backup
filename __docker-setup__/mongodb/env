@@ -1,0 +1,5 @@
+MONGO_USER_ADMIN=root
+MONGO_PASS_ADMIN=rootpwd
+
+MONGO_REPLICA_ADMIN=replicaRoot
+MONGO_PASS_REPLICA=replicarootpwd

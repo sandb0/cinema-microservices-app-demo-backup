@@ -5,11 +5,6 @@
 # Copyright (c) 2020 Sand Box 0
 #
 
-MANAGER_NODE="manager-node1"
-
-# Allow shell for Docker Swarm commands.
-eval $(docker-machine env $MANAGER_NODE)
-
 MICROSERVICES=(
   "./Services/Movies-Service"
 )
@@ -21,6 +16,11 @@ print_title() {
   echo "--------------------------------------------------"
   echo "(Images)" $1
   echo "--------------------------------------------------"
+}
+
+allow_docker_machine_shell() {
+  # Docker and Docker Swarm commands running inside of Docker Machine, VM.
+  eval $(docker-machine env $1)
 }
 
 use_insecure_registries() {
@@ -45,6 +45,7 @@ create_local_image_repository() {
       if [ -z $REGISTRY_SERVICE ]; then
         print_title "Creating local service for Image repository."
         docker service create --name $IMAGE_REPOSITORY_NAME --publish 5000:5000 registry:2
+        allow_docker_machine_shell $MANAGER_NODE
         use_insecure_registries $MANAGER_NODE
       fi
     # Or, create a Container.
@@ -78,6 +79,8 @@ push_image_to_repository() {
 
     print_title "Pushing '$IMAGE_NAME' Image to local Image repository"
 
+    allow_docker_machine_shell $MANAGER_NODE
+
     sudo docker tag $IMAGE_NAME:latest $(docker-machine ip $MANAGER_NODE):5000/$IMAGE_NAME
     sudo docker push $(docker-machine ip $MANAGER_NODE):5000/$IMAGE_NAME
 
@@ -101,6 +104,9 @@ main() {
       --use-hub=*)
         USE_HUB_IMAGE_REPOSITORY="${VALUE#*=}"
         DOCKER_HUB_USERNAME="${VALUE#*=}"
+        ;;
+      --manager_node_template_name=*)
+        MANAGER_NODE="${VALUE#*=}-1"
         ;;
     esac
     shift

@@ -5,11 +5,6 @@
 # Copyright (c) 2020 Sand Box 0
 #
 
-MANAGER_NODE="manager-node1"
-
-# Allow shell for Docker Swarm commands.
-eval $(docker-machine env $MANAGER_NODE)
-
 MICROSERVICES=(
   "./Services/Movies-Service"
 )
@@ -19,6 +14,11 @@ print_title() {
   echo "--------------------------------------------------"
   echo "(Services)" $1
   echo "--------------------------------------------------"
+}
+
+allow_docker_machine_shell() {
+  # Docker and Docker Swarm commands running inside of Docker Machine, VM.
+  eval $(docker-machine env $1)
 }
 
 main() {
@@ -38,9 +38,14 @@ main() {
         USE_HUB_IMAGE_REPOSITORY="${VALUE#*=}"
         DOCKER_HUB_USERNAME="${VALUE#*=}"
         ;;
+      --manager_node_template_name=*)
+        MANAGER_NODE="${VALUE#*=}-1"
+        ;;
     esac
     shift
   done
+
+  allow_docker_machine_shell $MANAGER_NODE
 
   # Build each microservice Docker Image.
   for ((i = 0; i < ${#MICROSERVICES[@]}; ++i)); do
