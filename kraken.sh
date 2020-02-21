@@ -5,7 +5,7 @@
 # Create Docker Images.
 # Create local Images repository and push. Or only push Images to Docker Hub.
 # Create Docker Swarm.
-# Create MongoDB replication.
+# Create MongoDB Replica Set.
 #
 # Copyright (c) 2020 Sand Box 0
 #
@@ -20,6 +20,10 @@ MANAGER_NODE_TEMPLATE_NAME="manager-node"
 
 # It's a template, it will look like this: "worker-node1", "worker-node2" ...
 WORKER_NODE_TEMPLATE_NAME="worker-node"
+
+MICROSERVICES=(
+  "./Services/Movies-Service"
+)
 
 
 print_title() {
@@ -54,32 +58,34 @@ print_usage_error() {
 
 print_status_message() {
   if [ ! -z $USE_SWARM ]; then
-    echo "Docker Swarm: on. Creating VMs, Docker Swarm."
+    echo "Docker Swarm: on. Creating Docker Machines and Docker Swarm."
   else
-    echo "Docker Swarm: off. Creating Docker Containers."
+    echo "Docker Swarm: off. Creating Docker standalone Containers."
   fi
 
   if [ -z "$USE_HUB" ] && [ -z "$USE_LOCAL" ]; then
     echo "No use Image repository. Using local Images."
   else
     if [ ! -z "$USE_LOCAL" ]; then
-      echo "Use Container for Image repository."
+      echo "Use standalone Container for Image repository."
     fi
 
     if [ ! -z "$USE_HUB" ]; then
       echo "Use Docker Hub for Image repository."
     fi
   fi
+
+  sleep 3
 }
 
 create_mongodb_replication() {
   cd __docker-setup__
 
-  print_title "Creating MongoDB containers and Replica Set"
+  print_title "Creating MongoDB Containers and Replica Set"
 
   sudo bash create-mongodb-containers.sh  --manager_node_template_name=$MANAGER_NODE_TEMPLATE_NAME --worker_node_template_name=$WORKER_NODE_TEMPLATE_NAME
 
-  print_title "Creating MongoDB containers and Replica Set: Done!"
+  print_title "Creating MongoDB Containers and Replica Set: Done!"
 
   cd ..
 }
@@ -99,11 +105,11 @@ create_docker_swarm() {
 create_docker_images() {
   cd __docker-setup__
   
-  print_title "Creating Docker Images"
+  print_title "Creating Docker microservice Images"
 
-  sudo bash create-docker-images.sh $USE_SWARM $USE_LOCAL $USE_HUB --manager_node_template_name=$MANAGER_NODE_TEMPLATE_NAME
+  sudo bash create-docker-images.sh $USE_SWARM $USE_LOCAL $USE_HUB --manager_node_template_name=$MANAGER_NODE_TEMPLATE_NAME --microservices=$MICROSERVICES
 
-  print_title "Creating Docker Images: Done!"
+  print_title "Creating Docker microservice Images: Done!"
 
   cd ..
 }
@@ -113,7 +119,7 @@ create_docker_services() {
 
   print_title "Creating Microservices"
 
-  sudo bash create-docker-services.sh $USE_SWARM $USE_LOCAL $USE_HUB --manager_node_template_name=$MANAGER_NODE_TEMPLATE_NAME
+  sudo bash create-docker-services.sh $USE_SWARM $USE_LOCAL $USE_HUB --manager_node_template_name=$MANAGER_NODE_TEMPLATE_NAME --microservices=$MICROSERVICES
 
   print_title "Creating Microservices: Done!"
 

@@ -43,7 +43,7 @@ if [ ! -z $USE_SWARM ]; then
     -l=apiRoute=$API_ROUTE \
     -p $PORT \
     $IMAGE
-# Create Container in Swarm mode off.
+# Create standalone Container in Swarm mode off.
 else
   CONTAINER=$(docker ps --filter name="$IMAGE_NAME" -q)
 

@@ -1,13 +1,9 @@
 #!/bin/bash
 #
-# Create with Docker the microservices.
+# Up microservices.
 #
 # Copyright (c) 2020 Sand Box 0
 #
-
-MICROSERVICES=(
-  "./Services/Movies-Service"
-)
 
 print_title() {
   echo ""
@@ -41,6 +37,9 @@ main() {
       --manager_node_template_name=*)
         MANAGER_NODE="${VALUE#*=}-1"
         ;;
+      --microservices=*)
+        MICROSERVICES=${VALUE#*=}
+        ;;
     esac
     shift
   done
@@ -65,6 +64,7 @@ main() {
 
     bash ./create-service.sh $IMAGE_NAME $IMAGE $USE_SWARM
 
+    # Back to root project directory.
     cd ..
   done
 }

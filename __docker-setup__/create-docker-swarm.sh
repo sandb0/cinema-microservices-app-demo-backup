@@ -1,6 +1,7 @@
 #!/bin/bash
 #
-# Create Swarm.
+# Create Docker Machines.
+# Create Docker Swarm.
 #
 # Copyright (c) 2020 Sand Box 0
 #
@@ -34,9 +35,13 @@ get_machine_worker_token() {
 leave_swarm() {
   print_title "Leaving Swarm"
 
+  # Leave Docker Swarm.
   docker-machine ssh $MANAGER_NODE-1 \
     docker swarm leave --force
 
+  sleep 1
+
+  # Remove Managers machines.
   for MANAGER in $(seq 1 $MANAGERS); do
     local MACHINE=$(docker-machine ls --filter name="$MANAGER_NODE-$MANAGER" -q)
 
@@ -44,9 +49,11 @@ leave_swarm() {
       print_title "Removing VM '$MANAGER_NODE-$MANAGER'"
 
       docker-machine rm $MANAGER_NODE-$MANAGER --force
+      sleep 1
     fi
   done
 
+  # Remove Workers machines.
   for WORKER in $(seq 1 $WORKERS); do
     local MACHINE=$(docker-machine ls --filter name="$WORKER_NODE-$WORKER" -q)
 
@@ -54,6 +61,7 @@ leave_swarm() {
       print_title "Removing VM '$WORKER_NODE-$WORKER'"
 
       docker-machine rm $WORKER_NODE-$WORKER --force
+      sleep 1
     fi
   done
 }
@@ -62,11 +70,12 @@ create_manager_nodes() {
   for MANAGER in $(seq 1 $MANAGERS); do
     local MACHINE=$(docker-machine ls --filter name="$MANAGER_NODE-$MANAGER" -q)
 
-    # If machine not exists.
+    # If Manager machine not exists, create it.
     if [ -z $MACHINE ]; then
       print_title "Creating VM '$MANAGER_NODE-$MANAGER'"
     
       docker-machine create --driver $DOCKER_MACHINE_DRIVER $ADDITIONAL_PARAMS $MANAGER_NODE-$MANAGER
+      sleep 1
     fi
   done
 }
@@ -75,11 +84,12 @@ create_worker_nodes() {
   for WORKER in $(seq 1 $WORKERS); do
     local MACHINE=$(docker-machine ls --filter name="$WORKER_NODE-$WORKER" -q)
 
-    # If machine not exists.
+    # If Worker machine not exists, create it.
     if [ -z $MACHINE ]; then
       print_title "Creating VM '$WORKER_NODE-$WORKER'"
 
       docker-machine create --driver $DOCKER_MACHINE_DRIVER $ADDITIONAL_PARAMS $WORKER_NODE-$WORKER
+      sleep 1
     fi
   done
 }
@@ -87,16 +97,22 @@ create_worker_nodes() {
 start_swarm() {
   print_title "Starting Swarm"
 
+  # Initiate Docker Swarm. Use `$MANAGER_NODE-1`.
   docker-machine ssh $MANAGER_NODE-1 \
     docker swarm init --advertise-addr $(get_machine_ip $MANAGER_NODE-1)
+
+  sleep 1
 }
 
 join_worker_nodes() {
+  # Join each Worker machine on Docker Swarm.
   for WORKER in $(seq 1 $WORKERS); do
     print_title "Worker Node '$WORKER_NODE-$WORKER' joining to Swarm"
 
     docker-machine ssh $WORKER_NODE-$WORKER \
       docker swarm join --token $(get_machine_worker_token) $(get_machine_ip $MANAGER_NODE-1):2377
+
+    sleep 1
   done
 }
 
@@ -156,7 +172,7 @@ main() {
     ADDITIONAL_PARAMS="--virtualbox-disk-size ${DISK_SIZE} --virtualbox-memory ${MEMORY}"
   fi
 
-  # If reset machines.
+  # Reset Docker Machines and Docker Swarm.
   if [ ! -z $SWARM_RESET_MACHINES ]; then
     leave_swarm
 

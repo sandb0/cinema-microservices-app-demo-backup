@@ -1,13 +1,10 @@
 #!/bin/bash
 #
 # Create Docker Images.
+# Create Image repository or use Docker Hub.
 #
 # Copyright (c) 2020 Sand Box 0
 #
-
-MICROSERVICES=(
-  "./Services/Movies-Service"
-)
 
 IMAGE_REPOSITORY_NAME="registry"
 
@@ -38,7 +35,7 @@ use_insecure_registries() {
 }
 
 create_local_image_repository() {
-  # Create local (Container) Image repository.
+  # Create Image repository.
   if [ ! -z "$USE_LOCAL_IMAGE_REPOSITORY" ]; then
     allow_docker_machine_shell $MANAGER_NODE
 
@@ -51,7 +48,7 @@ create_local_image_repository() {
         docker service create --name $IMAGE_REPOSITORY_NAME --publish 5000:5000 registry:2
         use_insecure_registries $MANAGER_NODE
       fi
-    # Or, create a Container.
+    # Or, create a standalone Container.
     else
       local REGISTRY_CONTAINER=$(docker ps --filter name="$IMAGE_REPOSITORY_NAME" -q)
 
@@ -76,7 +73,7 @@ push_image_to_repository() {
     sudo docker push $DOCKER_HUB_USERNAME/$IMAGE_NAME:latest
 
     sudo docker rmi $IMAGE_NAME
-  # To local Docker Container.
+  # To local Image repository.
   elif [ ! -z "$USE_LOCAL_IMAGE_REPOSITORY" ]; then
     local IMAGE_ID=$(docker images -q $IMAGE_NAME)
 
@@ -111,13 +108,15 @@ main() {
       --manager_node_template_name=*)
         MANAGER_NODE="${VALUE#*=}-1"
         ;;
+      --microservices=*)
+        MICROSERVICES=${VALUE#*=}
+        ;;
     esac
     shift
 
   done
 
-  # Instead of uploading Image to the Docker Hub,
-  # upload to a "remote" local (Container) repository.
+  # Instead of uploading Image to the Docker Hub, upload to Image repository.
   create_local_image_repository
 
   # Build each microservice Docker Image.
@@ -134,6 +133,7 @@ main() {
 
     push_image_to_repository $IMAGE_NAME
 
+    # Back to root project directory.
     cd ..
   done
 }
